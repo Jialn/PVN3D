@@ -7,6 +7,7 @@ from __future__ import (
     unicode_literals,
 )
 import os
+import datetime
 import tqdm
 import cv2
 import torch
@@ -125,17 +126,23 @@ def cal_view_pred_pose(model, data, epoch=0, obj_id=-1):
         if args.dataset == "ycb":
             np_rgb = np_rgb[:, :, ::-1].copy()
         ori_rgb = np_rgb.copy()
-        pose_to_write = None
+
+        object_pose_dict = {}
+        cls_lst = bs_utils.read_lines(config.ycb_cls_lst_p)
         for cls_id in cls_ids[0].cpu().numpy():
             idx = np.where(pred_cls_ids == cls_id)[0]
             if len(idx) == 0:
                 continue
             pose = pred_pose_lst[idx[0]]
-            if pose_to_write is None:
-                pose_to_write = pose
-            print("pose" + str(pose))
             if args.dataset == "ycb":
                 obj_id = int(cls_id[0])
+                obj_name = cls_lst[obj_id-1][4:]
+                # print(obj_name)
+                # print("pose:" + str(pose))
+                if obj_name in object_pose_dict.keys():
+                    object_pose_dict[obj_name].append(pose)
+                else:
+                    object_pose_dict[obj_name] = [pose]
             mesh_pts = bs_utils.get_pointxyz(obj_id, ds_type=args.dataset).copy()
             mesh_pts = np.dot(mesh_pts, pose[:, :3].T) + pose[:, 3]
             if args.dataset == "ycb":
@@ -147,20 +154,23 @@ def cal_view_pred_pose(model, data, epoch=0, obj_id=-1):
             np_rgb = bs_utils.draw_p2ds(np_rgb, mesh_p2ds, color=color)
         vis_dir = os.path.join(config.log_eval_dir, "pose_vis")
         ensure_fd(vis_dir)
-        import datetime
+        # append time, to keep the historial images
         curr_time = datetime.datetime.now()
         append_str = str(curr_time.month) + str(curr_time.day) + str(curr_time.hour) + str(curr_time.minute) + str(curr_time.second)
         f_pth = os.path.join(vis_dir,  "{}".format(epoch) + append_str + ".jpg")
+        org_f_pth = os.path.join(vis_dir,  "org_{}".format(epoch) + append_str + ".jpg")
         cv2.imwrite(f_pth, np_rgb)
-        pose_pth = os.path.join(vis_dir, "{}_pose.txt".format(epoch))
-        if pose_to_write is not None:
-            np.savetxt(pose_pth, pose_to_write)
+        cv2.imwrite(org_f_pth, ori_rgb)
+        # save the pose results
+        pose_pth = os.path.join(vis_dir, "{}_pose_dict.npy".format(epoch))
+        print(object_pose_dict)
+        np.save(pose_pth, object_pose_dict)
         print("\n\nPose results saved in: {}".format(pose_pth))
         # pose_2 = np.loadtxt(pose_pth) 
         # print(pose_2)
-        # imshow("projected_pose_rgb", np_rgb)
+        imshow("projected_pose_rgb", np_rgb)
         # imshow("ori_rgb", ori_rgb)
-        # waitKey(1)
+        waitKey(1)
     if epoch == 0:
         print("\n\nResults saved in {}".format(vis_dir))
 

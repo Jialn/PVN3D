@@ -245,7 +245,7 @@ class YCB_Dataset():
             kp_targ_ofst = np.zeros((config.n_sample_points, config.n_keypoints, 3))
             ctr_targ_ofst = np.zeros((config.n_sample_points, 3))
             cls_id_lst = meta['cls_indexes'].flatten().astype(np.uint32)
-            cls_id_lst = [6, 17, 18] # '040_large_marker', the 18 th line in 'datasets/ycb/dataset_config/classes.txt'
+            cls_id_lst = [6, 18] # '040_large_marker', the 18 th line in 'datasets/ycb/dataset_config/classes.txt'
             # print("cls_id_lst:" + str(cls_id_lst))
             for i, cls_id in enumerate(cls_id_lst):
                 r = meta['poses'][:, :, i][:, 0:3]
