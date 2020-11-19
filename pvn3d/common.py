@@ -136,7 +136,12 @@ class Config:
             self.val_nid_ptn = "/data/6D_Pose_Data/datasets/LINEMOD/pose_nori_lists/{}_real_val.nori.list"
 
         # use kp from config
-        camera_kp = np.loadtxt("/home/ubuntu/workplace/PVN3D/pvn3d/datasets/ycb/YCB_Video_Dataset/data/0000/000001-CameraK.txt")
+        coustomized_camera_kp_path = os.path.abspath(
+                os.path.join(
+                    self.exp_dir, 'datasets/ycb/YCB_Video_Dataset/data/0000/000001-CameraK.txt'
+                )
+            )
+        camera_kp = np.loadtxt(coustomized_camera_kp_path)
         self.intrinsic_matrix = {
             'linemod': np.array([[572.4114, 0.,         325.2611],
                                 [0.,        573.57043,  242.04899],
