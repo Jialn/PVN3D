@@ -30,10 +30,10 @@ except:
 
 parser = argparse.ArgumentParser(description="Arg parser")
 parser.add_argument(
-    "-checkpoint", type=str, default=None, help="Checkpoint to eval"
+    "-checkpoint", type=str, default='/home/ubuntu/workplace/PVN3D/pvn3d/train_log/ycb/checkpoints/pvn3d_best', help="Checkpoint to eval"
 )
 parser.add_argument(
-    "-dataset", type=str, default="linemod",
+    "-dataset", type=str, default="ycb",
     help="Target dataset, ycb or linemod. (linemod as default)."
 )
 parser.add_argument(
