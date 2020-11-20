@@ -129,29 +129,33 @@ def cal_view_pred_pose(model, data, epoch=0, obj_id=-1):
 
         object_pose_dict = {}
         cls_lst = bs_utils.read_lines(config.ycb_cls_lst_p)
+        object_count = 0
         for cls_id in cls_ids[0].cpu().numpy():
             idx = np.where(pred_cls_ids == cls_id)[0]
             if len(idx) == 0:
                 continue
-            pose = pred_pose_lst[idx[0]]
-            if args.dataset == "ycb":
-                obj_id = int(cls_id[0])
-                obj_name = cls_lst[obj_id-1][4:]
-                # print(obj_name)
-                # print("pose:" + str(pose))
-                if obj_name in object_pose_dict.keys():
-                    object_pose_dict[obj_name].append(pose)
+            for cls_idx in idx:
+                pose = pred_pose_lst[cls_idx]
+                if args.dataset == "ycb":
+                    obj_id = int(cls_id[0])
+                    obj_name = cls_lst[obj_id-1][4:]
+                    print(obj_name)
+                    print("pose:" + str(pose))
+                    if obj_name in object_pose_dict.keys():
+                        object_pose_dict[obj_name].append(pose)
+                    else:
+                        object_pose_dict[obj_name] = [pose]
+                mesh_pts = bs_utils.get_pointxyz(obj_id, ds_type=args.dataset).copy()
+                mesh_pts = np.dot(mesh_pts, pose[:, :3].T) + pose[:, 3]
+                if args.dataset == "ycb":
+                    K = config.intrinsic_matrix["ycb_K1"]
                 else:
-                    object_pose_dict[obj_name] = [pose]
-            mesh_pts = bs_utils.get_pointxyz(obj_id, ds_type=args.dataset).copy()
-            mesh_pts = np.dot(mesh_pts, pose[:, :3].T) + pose[:, 3]
-            if args.dataset == "ycb":
-                K = config.intrinsic_matrix["ycb_K1"]
-            else:
-                K = config.intrinsic_matrix["linemod"]
-            mesh_p2ds = bs_utils.project_p3d(mesh_pts, 1.0, K)
-            color = bs_utils.get_label_color(obj_id, n_obj=22, mode=1)
-            np_rgb = bs_utils.draw_p2ds(np_rgb, mesh_p2ds, color=color)
+                    K = config.intrinsic_matrix["linemod"]
+                mesh_p2ds = bs_utils.project_p3d(mesh_pts, 1.0, K)
+                color = bs_utils.get_label_color(obj_id, n_obj=22, mode=1)
+                np_rgb = bs_utils.draw_p2ds(np_rgb, mesh_p2ds, color=color)
+                cv2.putText(np_rgb, obj_name + '_' + str(len(object_pose_dict[obj_name])), (np.min(mesh_p2ds[:, 0]), np.min(mesh_p2ds[:, 1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                object_count += 1
         vis_dir = os.path.join(config.log_eval_dir, "pose_vis")
         ensure_fd(vis_dir)
         # append time, to keep the historial images
@@ -185,7 +189,7 @@ def main():
         
     test_loader = torch.utils.data.DataLoader(
         test_ds, batch_size=config.test_mini_batch_size, shuffle=False,
-        num_workers=1
+        num_workers=0
     )
     torch.cuda.empty_cache()
     with torch.no_grad():

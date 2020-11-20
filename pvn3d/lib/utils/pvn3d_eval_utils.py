@@ -41,7 +41,7 @@ def cal_frame_poses(
     pred_ctr = pcld - ctr_of[0]
     pred_kp = pcld.view(1, n_pts, 3).repeat(n_kps, 1, 1) - pred_kp_of
 
-    radius=0.08
+    radius=0.04
     if use_ctr:
         cls_kps = torch.zeros(n_cls, n_kps+1, 3).cuda()
     else:
@@ -49,65 +49,85 @@ def cal_frame_poses(
 
     pred_cls_ids = np.unique(mask[mask>0].contiguous().cpu().numpy())
     if use_ctr_clus_flter:
-       ctrs = []
-       for icls, cls_id in enumerate(pred_cls_ids):
-           cls_msk = (mask == cls_id)
-           ms = MeanShiftTorch(bandwidth=radius)
-           ctr, ctr_labels = ms.fit(pred_ctr[cls_msk, :])
-           ctrs.append(ctr.detach().contiguous().cpu().numpy())
-       ctrs = torch.from_numpy(np.array(ctrs).astype(np.float32)).cuda()
-       n_ctrs, _ = ctrs.size()
-       pred_ctr_rp = pred_ctr.view(n_pts, 1, 3).repeat(1, n_ctrs, 1)
-       ctrs_rp = ctrs.view(1, n_ctrs, 3).repeat(n_pts, 1, 1)
-       ctr_dis = torch.norm((pred_ctr_rp - ctrs_rp), dim=2)
-       min_dis, min_idx = torch.min(ctr_dis, dim=1)
-       msk_closest_ctr = torch.LongTensor(pred_cls_ids).cuda()[min_idx]
-       new_msk = mask.clone()
-       for cls_id in pred_cls_ids:
-           if cls_id == 0:
-               break
-           min_msk = min_dis < config.ycb_r_lst[cls_id-1] * 0.8
-           update_msk = (mask > 0) & (msk_closest_ctr == cls_id) & min_msk
-           new_msk[update_msk] = msk_closest_ctr[update_msk]
-       mask = new_msk
+        ctrs = []
+        truely_pred_cls = []
+        for icls, cls_id in enumerate(pred_cls_ids):
+            if cls_id == 18:
+                print(cls_id)
+            cls_msk = (mask == cls_id)
+            ms = MeanShiftTorch(bandwidth=radius)
+            ctr_list, ctrs_labels_list = ms.fit(pred_ctr[cls_msk, :])
+            for ctr in ctr_list:
+                ctrs.append(ctr.detach().contiguous().cpu().numpy())
+                truely_pred_cls.append(cls_id)
+        truely_pred_cls = np.array(truely_pred_cls, dtype=np.int64)
+        ctrs = torch.from_numpy(np.array(ctrs).astype(np.float32)).cuda()
+        n_ctrs, _ = ctrs.size()
+        pred_ctr_rp = pred_ctr.view(n_pts, 1, 3).repeat(1, n_ctrs, 1)
+        ctrs_rp = ctrs.view(1, n_ctrs, 3).repeat(n_pts, 1, 1)
+        ctr_dis = torch.norm((pred_ctr_rp - ctrs_rp), dim=2)
+        min_dis, min_idx = torch.min(ctr_dis, dim=1)
+        msk_closest_ctr = torch.LongTensor(truely_pred_cls).cuda()[min_idx]
+        new_msk = mask.clone()
+        for cls_id in truely_pred_cls:
+            if cls_id == 0:
+                break
+            min_msk = min_dis < config.ycb_r_lst[cls_id-1] * 0.8
+            update_msk = (mask > 0) & (msk_closest_ctr == cls_id) & min_msk
+            new_msk[update_msk] = msk_closest_ctr[update_msk]
+        mask = new_msk
 
     pred_pose_lst = []
+    truely_pred_cls = []
     for icls, cls_id in enumerate(pred_cls_ids):
         if cls_id == 0:
             break
         cls_msk = mask == cls_id
         if cls_msk.sum() < 1:
             pred_pose_lst.append(np.identity(4)[:3,:])
+            truely_pred_cls.append(cls_id)
             continue
-
-        cls_voted_kps = pred_kp[:, cls_msk, :]
+        cls_msk_idx = []
+        for _i, msk in enumerate(cls_msk.cpu().numpy()):
+            if msk:
+                cls_msk_idx.append(_i)
         ms = MeanShiftTorch(bandwidth=radius)
-        ctr, ctr_labels = ms.fit(pred_ctr[cls_msk, :])
-        if ctr_labels.sum() < 1:
-            ctr_labels[0] = 1
-        if use_ctr:
-            cls_kps[cls_id, n_kps, :] = ctr
+        ctr_list, ctr_labels_list = ms.fit(pred_ctr[cls_msk, :])
+        for ctr, ctr_labels in zip(ctr_list, ctr_labels_list):
+            if ctr_labels.sum() < 1:
+                ctr_labels[0] = 1
+            if use_ctr:
+                cls_kps[cls_id, n_kps, :] = ctr
 
-        if use_ctr_clus_flter:
-            in_pred_kp = cls_voted_kps[:, ctr_labels, :]
-        else:
+            cls_msk_obj = []#torch.zeros(cls_msk.shape[0], dtype=uint8).cuda()
+            for _i, val in enumerate(ctr_labels.cpu().numpy()):
+                if val:
+                    # cls_msk_obj[cls_msk_idx[_i]] = 1
+                    cls_msk_obj.append(cls_msk_idx[_i])
+
+            cls_voted_kps = pred_kp[:, cls_msk_obj, :]
+            # if use_ctr_clus_flter:
+            #     in_pred_kp = cls_voted_kps[:, ctr_labels, :]
+            # else:
+            #     in_pred_kp = cls_voted_kps
             in_pred_kp = cls_voted_kps
 
-        for ikp, kps3d in enumerate(in_pred_kp):
-            cls_kps[cls_id, ikp, :], _ = ms.fit(kps3d)
+            for ikp, kps3d in enumerate(in_pred_kp):
+                cls_kps[cls_id, ikp, :], _ = ms.fit(kps3d, multi_object=False)
 
-        mesh_kps = bs_utils.get_kps(cls_lst[cls_id-1])
-        if use_ctr:
-            mesh_ctr = bs_utils.get_ctr(cls_lst[cls_id-1]).reshape(1,3)
-            mesh_kps = np.concatenate((mesh_kps, mesh_ctr), axis=0)
-        mesh_kps = torch.from_numpy(mesh_kps.astype(np.float32)).cuda()
-        pred_RT = bs_utils.best_fit_transform(
-            mesh_kps.contiguous().cpu().numpy(),
-            cls_kps[cls_id].squeeze().contiguous().cpu().numpy()
-        )
-        pred_pose_lst.append(pred_RT)
+            mesh_kps = bs_utils.get_kps(cls_lst[cls_id-1])
+            if use_ctr:
+                mesh_ctr = bs_utils.get_ctr(cls_lst[cls_id-1]).reshape(1,3)
+                mesh_kps = np.concatenate((mesh_kps, mesh_ctr), axis=0)
+            mesh_kps = torch.from_numpy(mesh_kps.astype(np.float32)).cuda()
+            pred_RT = bs_utils.best_fit_transform(
+                mesh_kps.contiguous().cpu().numpy(),
+                cls_kps[cls_id].squeeze().contiguous().cpu().numpy()
+            )
+            truely_pred_cls.append(cls_id)
+            pred_pose_lst.append(pred_RT)
 
-    return (pred_cls_ids, pred_pose_lst)
+    return (truely_pred_cls, pred_pose_lst)
 
 
 def eval_metric(cls_ids, pred_pose_lst, pred_cls_ids, RTs, mask, label):
