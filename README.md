@@ -1,3 +1,19 @@
+# Overview
+This is a modified version of PVN3D used for gripping. Enable customized input pictures by some workarounds.
+
+
+<div align=center><img width="60%" height="60%" src="pictures/grip_demo.gif"/></div>
+
+Usage:
+
+  save the RGB, Depth and camera intrinsic matrix to "pvn3d/datasets/ycb/ YCB_Video_Dataset/data/0000/"
+  
+  run demo_ycb.sh
+  
+  get result from "pvn3d/train_log/ycb/eval_results/pose_vis/0_pose_dict.npy"
+
+-----------------
+
 # PVN3D
 This is the source code for ***PVN3D: A Deep Point-wise 3D Keypoints Voting Network for 6DoF Pose Estimation***, **CVPR 2020**. ([PDF](http://openaccess.thecvf.com/content_CVPR_2020/papers/He_PVN3D_A_Deep_Point-Wise_3D_Keypoints_Voting_Network_for_6DoF_CVPR_2020_paper.pdf), [Video_bilibili](https://www.bilibili.com/video/av89408773/), [Video_youtube](https://www.youtube.com/watch?v=ZKo788cyD-Q&t=1s)).
 
