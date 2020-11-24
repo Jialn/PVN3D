@@ -6,11 +6,13 @@ This is a modified version of PVN3D used for gripping. Enable customized input p
 
 Usage:
 
-  save the RGB, Depth and camera intrinsic matrix to "pvn3d/datasets/ycb/ YCB_Video_Dataset/data/0000/"
+  put the ycb pre-trained model to ``pvn3d/train_log/ycb/checkpoints/``
+
+  save the RGB, Depth and camera intrinsic matrix to ``pvn3d/datasets/ycb/ YCB_Video_Dataset/data/0000/``
   
-  run demo_ycb.sh
+  run ``demo_ycb.sh``
   
-  get result from "pvn3d/train_log/ycb/eval_results/pose_vis/0_pose_dict.npy"
+  get result from ``pvn3d/train_log/ycb/eval_results/pose_vis/0_pose_dict.npy``
 
 -----------------
 
