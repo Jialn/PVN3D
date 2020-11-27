@@ -8,6 +8,13 @@ from plyfile import PlyData
 import random
 import torch
 
+exp_dir = os.path.dirname(__file__)
+coustomized_camera_kp_path = os.path.abspath(
+        os.path.join(
+            exp_dir, '../../datasets/ycb/YCB_Video_Dataset/data/0000/000001-CameraK.txt'
+        )
+    )
+camera_kp = np.loadtxt(coustomized_camera_kp_path)
 
 intrinsic_matrix = {
     'linemod': np.array([[572.4114, 0.,         325.2611],
@@ -19,15 +26,11 @@ intrinsic_matrix = {
     'pascal': np.asarray([[-3000.0, 0.0,    0.0],
                          [0.0,      3000.0, 0.0],
                          [0.0,      0.0,    1.0]]),
-    'ycb_K1': np.array([[1066.778, 0.        , 312.9869],
-                        [0.      , 1067.487  , 241.3109],
-                        [0.      , 0.        , 1.0]], np.float32),
+    'ycb_K1': camera_kp,
     'ycb_K2': np.array([[1077.836, 0.        , 323.7872],
                         [0.      , 1078.189  , 279.6921],
                         [0.      , 0.        , 1.0]], np.float32)
 }
-
-
 
 def VOCap(rec, prec):
     idx = np.where(rec != np.inf)
@@ -541,6 +544,8 @@ class Basic_Utils():
     def get_kps(
         self, cls, kp_type='farthest', ds_type='ycb'
     ):
+        # print(self.ycb_cls_lst)
+        # print(self.ycb_cls_kps_dict)
         if type(cls) is int:
             if ds_type == 'ycb':
                 cls = self.ycb_cls_lst[cls - 1]

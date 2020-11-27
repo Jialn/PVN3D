@@ -21,7 +21,7 @@ class MeanShiftTorch():
         self.stop_thresh = bandwidth * 1e-3
         self.max_iter = max_iter
 
-    def fit(self, A):
+    def fit(self, A, multi_object=True):
         """
         params: A: [N, 3]
         """
@@ -43,12 +43,38 @@ class MeanShiftTorch():
                 # print("torch meanshift total iter:", it)
                 break
         # find biggest cluster
-        Cr = A.view(N, 1, c).repeat(1, N, 1)
-        dis = torch.norm(Ar - Cr, dim=2)
-        num_in = torch.sum(dis < self.bandwidth, dim=1)
-        max_num, max_idx = torch.max(num_in, 0)
-        labels = dis[max_idx] < self.bandwidth
-        return C[max_idx, :], labels
+        ret_centers = list()
+        ret_labels = list()
+        num_points = N
+        delete_idx = []
+        if multi_object:
+            while True:
+                Cr = A.view(N, 1, c).repeat(1, N, 1)
+                dis = torch.norm(Ar - Cr, dim=2)
+                for idx in delete_idx:
+                    dis[idx] = self.bandwidth + 2
+                for idx in delete_idx:
+                    dis[:, idx] = self.bandwidth + 2
+                num_in = torch.sum(dis < self.bandwidth, dim=1)
+                max_num, max_idx = torch.max(num_in, 0)
+                labels = dis[max_idx] < self.bandwidth
+                if max_num < 30 or np.abs(C[max_idx, :].cpu().numpy()[2]) < 0.2:
+                    break
+                else:
+                    ret_centers.append(C[max_idx, :])
+                    ret_labels.append(labels)
+                    for _i, val in enumerate(labels.cpu().numpy()):
+                        if val:
+                            delete_idx.append(_i)
+                # return ret_centers, ret_labels
+            return ret_centers, ret_labels
+        else:
+            Cr = A.view(N, 1, c).repeat(1, N, 1)
+            dis = torch.norm(Ar - Cr, dim=2)
+            num_in = torch.sum(dis < self.bandwidth, dim=1)
+            max_num, max_idx = torch.max(num_in, 0)
+            labels = dis[max_idx] < self.bandwidth
+            return C[max_idx, :], labels
 
     def fit_batch_npts(self, A):
         """
