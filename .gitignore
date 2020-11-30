@@ -5,9 +5,7 @@
 ****/*.so
 build
 ****/knn
-# pvn3d/datasets/ycb/YCB_Video_Dataset
-pvn3d/datasets/ycb/YCB_Video_Dataset/models
-pvn3d/datasets/ycb/YCB_Video_Dataset/poses
-pvn3d/datasets/ycb/YCB_Video_Dataset/pairs
-pvn3d/train_log/ycb/eval_results/pose_vis
 .vscode
+venv
+Pointnet2_PyTorch
+python-pcl*
