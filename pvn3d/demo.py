@@ -161,9 +161,11 @@ def cal_view_pred_pose(model, data, epoch=0, obj_id=-1):
         # append time, to keep the historial images
         curr_time = datetime.datetime.now()
         append_str = str(curr_time.month) + str(curr_time.day) + str(curr_time.hour) + str(curr_time.minute) + str(curr_time.second)
-        f_pth = os.path.join(vis_dir,  "{}".format(epoch) + append_str + ".jpg")
+        f_pth = os.path.join(vis_dir,  "0.jpg")
+        f_pth_with_time = os.path.join(vis_dir,  "{}".format(epoch) + append_str + ".jpg")
         org_f_pth = os.path.join(vis_dir,  "org_{}".format(epoch) + append_str + ".jpg")
         cv2.imwrite(f_pth, np_rgb)
+        cv2.imwrite(f_pth_with_time, np_rgb)
         cv2.imwrite(org_f_pth, ori_rgb)
         # save the pose results
         pose_pth = os.path.join(vis_dir, "{}_pose_dict.npy".format(epoch))
