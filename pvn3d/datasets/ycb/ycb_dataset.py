@@ -247,7 +247,7 @@ class YCB_Dataset():
             cls_id_lst = meta['cls_indexes'].flatten().astype(np.uint32)
             for_demo = True
             if for_demo:
-                cls_id_lst = [4, 6, 10, 18] # '040_large_marker', the 18 th line in 'datasets/ycb/dataset_config/classes.txt'
+                cls_id_lst = [4, 6, 10, 18] # 4, 6, 10, 18 '040_large_marker', the 18 th line in 'datasets/ycb/dataset_config/classes.txt'
             # print("cls_id_lst:" + str(cls_id_lst))
             for i, cls_id in enumerate(cls_id_lst):
                 if for_demo:  # these are not used, can be ignored

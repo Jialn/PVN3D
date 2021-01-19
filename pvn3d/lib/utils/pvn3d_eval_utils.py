@@ -62,7 +62,10 @@ def cal_frame_poses(
                 truely_pred_cls.append(cls_id)
         truely_pred_cls = np.array(truely_pred_cls, dtype=np.int64)
         ctrs = torch.from_numpy(np.array(ctrs).astype(np.float32)).cuda()
-        n_ctrs, _ = ctrs.size()
+        print(ctrs)
+        n_ctrs = ctrs.size()[0]
+        print("centers.size:" + str(ctrs.size()))
+        print(n_ctrs)
         pred_ctr_rp = pred_ctr.view(n_pts, 1, 3).repeat(1, n_ctrs, 1)
         ctrs_rp = ctrs.view(1, n_ctrs, 3).repeat(n_pts, 1, 1)
         ctr_dis = torch.norm((pred_ctr_rp - ctrs_rp), dim=2)
